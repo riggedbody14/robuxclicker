@@ -9,32 +9,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
     <style>
-        :root {
-            /* Sized for good mobile experience */
-            --robux-size: 180px;
-        }
-
         body {
             font-family: 'Lilita One', cursive;
             overflow: hidden;
-            background-color: #f2f2f2; /* Roblox-style light gray background */
+            background-color: #f2f2f2;
         }
 
-        /* Start Screen Overlay */
-        #start-screen {
-            background-color: rgba(0, 0, 0, 0.7);
-            z-index: 10000;
+        #game-screen, #start-screen {
+            display: none; /* Initially hide both */
         }
 
-        /* Main Game Screen (hidden initially) */
-        #game-screen {
-            display: none;
-        }
-
-        /* Main clickable Robux icon */
         #robux-button {
-            width: var(--robux-size);
-            height: var(--robux-size);
+            width: 180px;
+            height: 180px;
             transition: transform 0.1s ease-in-out;
             user-select: none;
             -webkit-user-drag: none;
@@ -44,7 +31,6 @@
             transform: scale(0.95);
         }
 
-        /* Container for the flying particles */
         #particle-container {
             position: fixed;
             top: 0;
@@ -55,74 +41,75 @@
             z-index: 9999;
         }
 
-        /* Individual particle styling and animation */
         .particle {
             position: absolute;
-            width: 30px; /* Particles are slightly smaller */
+            width: 30px;
             height: 30px;
             animation: fly-out 1s ease-out forwards;
-            pointer-events: none;
-            user-select: none;
-            -webkit-user-drag: none;
+        }
+        
+        @keyframes fly-out {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--x), var(--y)) scale(0.5) rotate(360deg); opacity: 0; }
+        }
+        
+        /* Modal Animation */
+        #withdraw-modal .modal-card {
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            transform: scale(0.95);
+            opacity: 0;
         }
 
-        /* Animation keyframes for the particle effect */
-        @keyframes fly-out {
-            0% {
-                transform: translate(0, 0) scale(1);
-                opacity: 1;
-            }
-            100% {
-                transform: translate(var(--x), var(--y)) scale(0.5) rotate(360deg);
-                opacity: 0;
-            }
+        #withdraw-modal.show .modal-card {
+            transform: scale(1);
+            opacity: 1;
         }
     </style>
 </head>
 <body class="text-gray-800 select-none">
 
-    <div id="start-screen" class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-2xl p-6 md:p-8 w-full max-w-md text-center">
-            <h2 class="text-3xl md:text-4xl font-bold mb-4 text-gray-900">Welcome!</h2>
+    <div id="withdraw-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[10001]">
+        <div class="modal-card bg-white p-8 rounded-2xl shadow-2xl text-center w-full max-w-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h2 class="text-3xl font-bold text-gray-800 mt-4">Success!</h2>
+            <p id="withdraw-message" class="text-gray-600 mt-2 mb-6">X Robux have been sent to your account.</p>
+            <button id="close-modal-button" class="w-full bg-blue-600 text-white font-bold py-3 px-8 rounded-lg text-lg hover:bg-blue-700 transition-colors">
+                Continue Clicking
+            </button>
+        </div>
+    </div>
+
+    <div id="start-screen" class="flex fixed inset-0 items-center justify-center p-4 z-[10000] bg-white">
+        <div class="w-full max-w-md text-center">
+            <h2 class="text-4xl font-bold mb-4 text-gray-900">Welcome!</h2>
             <p class="text-gray-600 mb-6">Enter your nickname and upload an avatar.</p>
-            
             <img id="avatar-preview" src="https://placehold.co/100x100/e0e0e0/333?text=Avatar" class="w-24 h-24 rounded-full mx-auto mb-4 object-cover">
-            
             <input type="text" id="nickname-input" placeholder="Enter your nickname" class="w-full p-3 mb-4 border-2 border-gray-300 rounded-md text-center focus:border-blue-500 focus:outline-none">
-            
             <label for="avatar-input" class="w-full block bg-gray-200 text-gray-700 p-3 mb-4 rounded-md cursor-pointer hover:bg-gray-300 transition-colors">
                 Upload Avatar
             </label>
             <input type="file" id="avatar-input" accept="image/*" class="hidden">
-
             <button id="start-button" class="w-full bg-blue-600 text-white font-bold p-3 rounded-md text-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
                 Start Game
             </button>
         </div>
     </div>
 
-    <div id="game-screen" class="min-h-screen flex flex-col items-center justify-center p-4">
-        
-        <h1 class="text-5xl md:text-7xl font-bold uppercase text-gray-700 drop-shadow-lg">
-            Robux Clicker
-        </h1>
-
+    <div id="game-screen" class="min-h-screen flex-col items-center justify-center p-4">
+        <h1 class="text-5xl md:text-7xl font-bold uppercase text-gray-700 drop-shadow-lg">Robux Clicker</h1>
         <div id="player-info" class="flex flex-col items-center my-4">
             <img id="player-avatar" src="" alt="Avatar" class="w-20 h-20 rounded-full border-4 border-blue-400 object-cover shadow-lg">
             <span id="player-nickname" class="mt-2 font-bold text-2xl text-gray-800"></span>
         </div>
-
-        <div id="score" class="text-7xl md:text-8xl font-bold mb-6 text-gray-900 drop-shadow-md">
-            0
+        <div id="score" class="text-7xl md:text-8xl font-bold text-gray-900 drop-shadow-md">0</div>
+        <div class="text-center mt-4">
+            <img id="robux-button" src="Robux_2019_Logo_gold.svg (1).png" alt="Robux Icon" class="cursor-pointer drop-shadow-2xl hover:scale-105" onerror="this.onerror=null;this.src='https://placehold.co/200x200/3B82F6/ffffff?text=Robux';">
+            <button id="withdraw-button" class="mt-8 bg-green-600 text-white font-bold py-3 px-8 rounded-lg text-xl hover:bg-green-700 transition-transform transform hover:scale-105">
+                Withdraw
+            </button>
         </div>
-
-        <div class="relative">
-            <img id="robux-button"
-                 src="Robux_2019_Logo_gold.svg (1).png" alt="Robux Icon"
-                 class="cursor-pointer drop-shadow-2xl hover:scale-105 transition-transform duration-200"
-                 onerror="this.onerror=null;this.src='https://placehold.co/200x200/3B82F6/ffffff?text=Robux';">
-        </div>
-
     </div>
 
     <div id="particle-container"></div>
@@ -131,27 +118,27 @@
         // --- DOM Element References ---
         const startScreen = document.getElementById('start-screen');
         const gameScreen = document.getElementById('game-screen');
-        
         const nicknameInput = document.getElementById('nickname-input');
         const avatarInput = document.getElementById('avatar-input');
         const avatarPreview = document.getElementById('avatar-preview');
         const startButton = document.getElementById('start-button');
-        
         const playerAvatar = document.getElementById('player-avatar');
         const playerNickname = document.getElementById('player-nickname');
-        
         const robuxButton = document.getElementById('robux-button');
         const scoreDisplay = document.getElementById('score');
         const particleContainer = document.getElementById('particle-container');
+        const withdrawButton = document.getElementById('withdraw-button');
+        // New Modal Elements
+        const withdrawModal = document.getElementById('withdraw-modal');
+        const withdrawMessage = document.getElementById('withdraw-message');
+        const closeModalButton = document.getElementById('close-modal-button');
 
         // --- Game State ---
         let score = 0;
-        const pointsPerClick = 1000;
+        const pointsPerClick = 5000;
 
         // --- Start Screen Logic ---
         let avatarSrc = avatarPreview.src;
-
-        // Preview avatar on file selection
         avatarInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -164,79 +151,81 @@
             }
         });
         
-        // Handler for the start button
         startButton.addEventListener('click', () => {
             const nickname = nicknameInput.value.trim();
-            
             if (!nickname) {
                 alert('Please enter a nickname!');
                 return;
             }
-            
-            // Set up player info
             playerNickname.textContent = nickname;
             playerAvatar.src = avatarSrc;
-
-            // Switch screens
             startScreen.style.display = 'none';
-            gameScreen.style.display = 'flex';
+            gameScreen.style.display = 'flex'; // Show the game
         });
 
         // --- Game Logic ---
         robuxButton.addEventListener('click', (e) => {
-            // 1. Increment score and update display
             score += pointsPerClick;
             scoreDisplay.textContent = score;
-            
-            // 2. Add a little "pop" animation to the score text
             scoreDisplay.animate([
-                { transform: 'scale(1.2)', color: '#2563EB' }, // Blue color for pop
-                { transform: 'scale(1)', color: '#1f2937' }  // Revert to dark gray
-            ], {
-                duration: 200,
-                easing: 'ease-out'
-            });
-
-            // 3. Create a burst of particles
+                { transform: 'scale(1.2)', color: '#2563EB' },
+                { transform: 'scale(1)', color: '#1f2937' }
+            ], { duration: 200, easing: 'ease-out' });
             createParticleBurst(e.clientX, e.clientY);
         });
         
-        /**
-         * Creates a burst of Robux particles at the specified coordinates.
-         * @param {number} x - The horizontal coordinate of the click.
-         * @param {number} y - The vertical coordinate of the click.
-         */
-        function createParticleBurst(x, y) {
-            const particleCount = 8;
-
-            for (let i = 0; i < particleCount; i++) {
-                const particle = document.createElement('img');
+        // --- Withdraw Button Logic with Modal ---
+        withdrawButton.addEventListener('click', () => {
+            if (score > 0) {
+                // Set the message with the score *before* resetting
+                withdrawMessage.textContent = `${score} Robux have been sent to your account.`;
                 
-                // Configure the particle element
-                particle.src = 'Sd6RCg.png'; // !!! REPLACE WITH YOUR PARTICLE IMAGE !!!
-                particle.onerror = "this.onerror=null;this.src='Robux_2019_Logo_gold.svg (1).png";
-                particle.classList.add('particle');
+                // Reset score immediately
+                score = 0;
+                scoreDisplay.textContent = score;
                 
-                // Position the particle at the click location
-                particle.style.left = `${x - 15}px`; // Center the particle
-                particle.style.top = `${y - 15}px`;
-
-                // Generate random values for the animation
-                const randomX = (Math.random() - 0.5) * 2 * 150;
-                const randomY = (Math.random() - 0.5) * 2 * 150;
-                
-                // Set CSS custom properties for the animation
-                particle.style.setProperty('--x', `${randomX}px`);
-                particle.style.setProperty('--y', `${randomY}px`);
-
-                // Add to the DOM and clean up after animation
-                particleContainer.appendChild(particle);
-
+                // Show the modal
+                withdrawModal.classList.remove('hidden');
+                withdrawModal.classList.add('flex');
+                // A tiny delay to allow the display property to apply before starting the transition
                 setTimeout(() => {
-                    particle.remove();
-                }, 1000); // Must match the animation duration in CSS
+                    withdrawModal.classList.add('show');
+                }, 10);
+
+            } else {
+                alert('You have no Robux to withdraw!');
+            }
+        });
+        
+        // --- Close Modal Logic ---
+        closeModalButton.addEventListener('click', () => {
+            withdrawModal.classList.remove('show');
+            // Wait for the animation to finish before hiding it
+            setTimeout(() => {
+                withdrawModal.classList.add('hidden');
+                withdrawModal.classList.remove('flex');
+            }, 300); // Should match transition duration
+        });
+        
+        function createParticleBurst(x, y) {
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('img');
+                particle.src = 'Sd6RCg.png';
+                particle.onerror = "this.onerror=null;this.src='https://placehold.co/30x30/3B82F6/ffffff?text=R$';";
+                particle.classList.add('particle');
+                particle.style.left = `${x - 15}px`;
+                particle.style.top = `${y - 15}px`;
+                particle.style.setProperty('--x', `${(Math.random() - 0.5) * 300}px`);
+                particle.style.setProperty('--y', `${(Math.random() - 0.5) * 300}px`);
+                particleContainer.appendChild(particle);
+                setTimeout(() => { particle.remove(); }, 1000);
             }
         }
+        
+        // Show the start screen on page load
+        window.onload = () => {
+            startScreen.style.display = 'flex';
+        };
     </script>
 
 </body>
